@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+sqlalchemy[postgresql]
+psycopg2-binary
+python-dotenv
+geojson
+httpx
+pydantic
+black
+ruff

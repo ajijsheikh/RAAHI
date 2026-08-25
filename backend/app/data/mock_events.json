@@ -1,0 +1,167 @@
+[
+  {
+    "event_id": "00000000-0000-0000-0000-000000000020",
+    "trip_id": "00000000-0000-0000-0000-000000000001",
+    "type": "trip_created",
+    "severity": "info",
+    "title": "Trip created",
+    "message": "Your trip from Howrah Junction to Salt Lake Sector V has been planned.",
+    "created_at": "2026-08-25T08:52:11+05:30",
+    "payload": {
+      "trip": {
+        "trip_id": "00000000-0000-0000-0000-000000000001",
+        "status": "active",
+        "origin": { "name": "Howrah Junction", "lat": 22.5839, "lng": 88.3425 },
+        "destination": { "name": "Salt Lake Sector V", "lat": 22.5768, "lng": 88.4302 },
+        "max_budget_inr": 200,
+        "total_cost_inr": 47,
+        "total_duration_min": 68,
+        "safety_score": 0.78,
+        "legs": [
+          {
+            "leg_id": "00000000-0000-0000-0000-000000000010",
+            "seq": 1,
+            "mode": "train",
+            "status": "pending",
+            "from": { "name": "Howrah Junction", "lat": 22.5839, "lng": 88.3425 },
+            "to": { "name": "Bidhannagar Road", "lat": 22.5885, "lng": 88.3990 },
+            "cost_inr": 10,
+            "duration_min": 22,
+            "depart_at": "2026-08-25T09:05:00+05:30",
+            "arrive_at": "2026-08-25T09:27:00+05:30",
+            "instruction": "Take the Howrah–Sealdah local, get off at Bidhannagar Road.",
+            "polyline": [[22.5839, 88.3425], [22.5860, 88.3610], [22.5885, 88.3990]],
+            "deep_link": null,
+            "safety_score": 0.82
+          },
+          {
+            "leg_id": "00000000-0000-0000-0000-000000000011",
+            "seq": 2,
+            "mode": "walk",
+            "status": "pending",
+            "from": { "name": "Bidhannagar Road", "lat": 22.5885, "lng": 88.3990 },
+            "to": { "name": "Salt Lake Sector V", "lat": 22.5768, "lng": 88.4302 },
+            "cost_inr": 0,
+            "duration_min": 15,
+            "depart_at": "2026-08-25T09:28:00+05:30",
+            "arrive_at": "2026-08-25T09:43:00+05:30",
+            "instruction": "Walk straight for 800m to Salt Lake Sector V main gate.",
+            "polyline": [[22.5885, 88.3990], [22.5870, 88.4005], [22.5780, 88.4250]],
+            "deep_link": null,
+            "safety_score": 0.91
+          },
+          {
+            "leg_id": "00000000-0000-0000-0000-000000000012",
+            "seq": 3,
+            "mode": "auto",
+            "status": "pending",
+            "from": { "name": "Salt Lake Sector V", "lat": 22.5768, "lng": 88.4302 },
+            "to": { "name": "Final Destination", "lat": 22.5750, "lng": 88.4320 },
+            "cost_inr": 37,
+            "duration_min": 10,
+            "depart_at": "2026-08-25T09:44:00+05:30",
+            "arrive_at": "2026-08-25T09:54:00+05:30",
+            "instruction": "Take an auto-rickshaw to your hostel in Salt Lake Sector V.",
+            "polyline": [[22.5768, 88.4302], [22.5775, 88.4310], [22.5755, 88.4315]],
+            "deep_link": null,
+            "safety_score": 0.65
+          }
+        ]
+      }
+    }
+  },
+  {
+    "event_id": "00000000-0000-0000-0000-000000000021",
+    "trip_id": "00000000-0000-0000-0000-000000000001",
+    "type": "leg_started",
+    "severity": "info",
+    "title": "Leg started",
+    "message": "Started leg 1: train from Howrah Junction to Bidhannagar Road.",
+    "created_at": "2026-08-25T09:00:00+05:30",
+    "payload": {
+      "leg_id": "00000000-0000-0000-0000-000000000010",
+      "seq": 1
+    }
+  },
+  {
+    "event_id": "00000000-0000-0000-0000-000000000022",
+    "trip_id": "00000000-0000-0000-0000-000000000001",
+    "type": "reroute",
+    "severity": "warning",
+    "title": "Route updated",
+    "message": "Bus 215A delayed 18 min. Switched to auto to protect your 10:00 ETA.",
+    "created_at": "2026-08-25T09:31:04+05:30",
+    "payload": {
+      "reason": "delay",
+      "old_legs": [
+        {
+          "leg_id": "00000000-0000-0000-0000-000000000010",
+          "seq": 1,
+          "mode": "train",
+          "from": "Howrah Junction",
+          "to": "Bidhannagar Road",
+          "cost_inr": 10,
+          "duration_min": 22
+        }
+      ],
+      "new_legs": [
+        {
+          "leg_id": "00000000-0000-0000-0000-000000000012",
+          "seq": 3,
+          "mode": "auto",
+          "from": "Howrah Junction",
+          "to": "Salt Lake Sector V",
+          "cost_inr": 37,
+          "duration_min": 25
+        }
+      ],
+      "cost_delta_inr": 27,
+      "eta_delta_min": -8
+    }
+  },
+  {
+    "event_id": "00000000-0000-0000-0000-000000000023",
+    "trip_id": "00000000-0000-0000-0000-000000000001",
+    "type": "safety_alert",
+    "severity": "critical",
+    "title": "Safety zone entered",
+    "message": "You have entered a flagged safety zone. A real SMS is being sent to your emergency contact.",
+    "created_at": "2026-08-25T09:45:00+05:30",
+    "payload": {
+      "zone_id": "00000000-0000-0000-0000-000000000030",
+      "zone_name": "Howrah Station Surroundings",
+      "location": { "lat": 22.5839, "lng": 88.3425 },
+      "contact_notified": true,
+      "twilio_sid": "SM1234567890abcdef",
+      "map_link": "https://maps.google.com/?q=22.5839,88.3425"
+    }
+  },
+  {
+    "event_id": "00000000-0000-0000-0000-000000000024",
+    "trip_id": "00000000-0000-0000-0000-000000000001",
+    "type": "budget_switch",
+    "severity": "warning",
+    "title": "Budget switch",
+    "message": "Switched from auto to bus to stay under budget. Saved ₹20.",
+    "created_at": "2026-08-25T09:50:00+05:30",
+    "payload": {
+      "leg_id": "00000000-0000-0000-0000-000000000012",
+      "from_mode": "auto",
+      "to_mode": "bus",
+      "saved_inr": 20
+    }
+  },
+  {
+    "event_id": "00000000-0000-0000-0000-000000000025",
+    "trip_id": "00000000-0000-0000-0000-000000000001",
+    "type": "trip_completed",
+    "severity": "info",
+    "title": "Trip completed",
+    "message": "You have reached your destination safely.",
+    "created_at": "2026-08-25T10:00:00+05:30",
+    "payload": {
+      "total_cost_inr": 47,
+      "total_duration_min": 68
+    }
+  }
+]
