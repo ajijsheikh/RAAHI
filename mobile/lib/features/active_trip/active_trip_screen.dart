@@ -22,8 +22,43 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
     });
   }
 
+  void _onReroute(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: const Color(0xFF0F6E5C), // cAgent — autonomous action
+        duration: const Duration(seconds: 5),
+        behavior: SnackBarBehavior.floating,
+        content: Row(
+          children: [
+            const Icon(Icons.auto_awesome, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // React to live SSE events (02_PERSON_B P2.4/P3.2).
+    ref.listen<ActiveTripUiState>(activeTripProvider, (prev, next) {
+      final prevLen = prev?.events.length ?? 0;
+      if (next.events.length > prevLen) {
+        for (final e in next.events.sublist(prevLen)) {
+          if (e.eventType == 'reroute') {
+            _onReroute(
+              e.message.isEmpty ? 'Route updated by agent' : e.message,
+            );
+          } else if (e.eventType == 'safety_alert') {
+            final id = next.trip?.tripId ?? 'demo';
+            context.go('/trip/$id/alert');
+          }
+        }
+      }
+    });
+
     final state = ref.watch(activeTripProvider);
     final scheme = Theme.of(context).colorScheme;
     final trip = state.trip;
@@ -68,7 +103,7 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
                               ),
                             ],
                           ),
-                          const MonitoringDot(),
+                          MonitoringDot(reroutes: state.rerouteCount),
                         ],
                       ),
                     ),
@@ -169,7 +204,9 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
 
 /// Pulsing teal dot = "the agent is watching" (02_PERSON_B P2.3).
 class MonitoringDot extends StatefulWidget {
-  const MonitoringDot({super.key});
+  const MonitoringDot({super.key, this.reroutes = 0});
+
+  final int reroutes;
 
   @override
   State<MonitoringDot> createState() => _MonitoringDotState();
@@ -204,7 +241,11 @@ class _MonitoringDotState extends State<MonitoringDot>
             ),
           ),
           const SizedBox(width: 6),
-          const Text('Monitoring'),
+          Text(
+            widget.reroutes > 0
+                ? 'Monitoring · ${widget.reroutes} reroute(s)'
+                : 'Monitoring',
+          ),
         ],
       ),
     );

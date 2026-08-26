@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- INTERNET in MAIN manifest: without it release APKs silently lose all network. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="raahi"
         android:name="${applicationName}"
