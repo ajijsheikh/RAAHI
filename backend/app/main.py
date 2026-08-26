@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -7,10 +9,19 @@ from app.routers.amenities import router as amenities_router
 from app.routers.emergency_contacts import router as emergency_contacts_router
 from app.routers.irctc import router as irctc_router
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    from app.agents.monitor_loop import monitor
+    await monitor.stop_all()
+
+
 app = FastAPI(
     title="Raahi Backend",
     description="Agentic Safety-Aware Travel Companion API",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
