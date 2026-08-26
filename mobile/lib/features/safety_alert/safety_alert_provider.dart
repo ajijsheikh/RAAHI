@@ -1,5 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 /// Safety alert UI state. Full backend wiring (geofence event -> takeover)
 /// lands with P3; this provider keeps the screen self-contained for now.
 enum SafetyAlertStatus { idle, alerting, dismissed }

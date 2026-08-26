@@ -2,38 +2,66 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/active_trip/active_trip_screen.dart';
+import '../features/auth/auth_provider.dart';
+import '../features/auth/login_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/trip_request/trip_request_screen.dart';
-import '../features/active_trip/active_trip_screen.dart';
 
-/// Riverpod provider so widgets ref.watch the router (hot-restart safe).
-final appRouterProvider = Provider<GoRouter>((ref) => appRouter);
+/// Riverpod provider so widgets ref.watch the router; rebuilds on auth change.
+final appRouterProvider = Provider<GoRouter>((ref) {
+  final refresh = ValueNotifier(0);
+  ref.listen(authProvider, (_, __) => refresh.value++);
+  ref.onDispose(refresh.dispose);
 
-final appRouter = GoRouter(
-  initialLocation: '/',
-  routes: [
-    GoRoute(
-      path: '/',
-      name: 'tripRequest',
-      pageBuilder: (context, state) => const NoTransitionPage(child: TripRequestScreen()),
-    ),
-    GoRoute(
-      path: '/trip/:id',
-      name: 'activeTrip',
-      pageBuilder: (context, state) => const NoTransitionPage(child: ActiveTripScreen()),
-    ),
-    GoRoute(
-      path: '/trip/:id/alert',
-      name: 'safetyAlert',
-      pageBuilder: (context, state) => const NoTransitionPage(child: SafetyAlertPlaceholder()),
-    ),
-    GoRoute(
-      path: '/settings',
-      name: 'settings',
-      pageBuilder: (context, state) => const NoTransitionPage(child: SettingsScreen()),
-    ),
-  ],
-);
+  return GoRouter(
+    initialLocation: '/',
+    refreshListenable: refresh,
+    redirect: (context, state) {
+      final auth = ref.read(authProvider);
+
+      // Demo mode / Supabase not configured: everything open.
+      if (auth.isDemoMode || auth.status == AuthStatus.unknown) return null;
+
+      final loggingIn = state.matchedLocation == '/login';
+      if (!auth.isAuthenticated) return loggingIn ? null : '/login';
+      if (loggingIn) return '/';
+      return null;
+    },
+    routes: [
+      GoRoute(
+        path: '/login',
+        name: 'login',
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: LoginScreen()),
+      ),
+      GoRoute(
+        path: '/',
+        name: 'tripRequest',
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: TripRequestScreen()),
+      ),
+      GoRoute(
+        path: '/trip/:id',
+        name: 'activeTrip',
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: ActiveTripScreen()),
+      ),
+      GoRoute(
+        path: '/trip/:id/alert',
+        name: 'safetyAlert',
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: SafetyAlertPlaceholder()),
+      ),
+      GoRoute(
+        path: '/settings',
+        name: 'settings',
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: SettingsScreen()),
+      ),
+    ],
+  );
+});
 
 /// Placeholder until B's full safety alert screen lands.
 class SafetyAlertPlaceholder extends StatelessWidget {
@@ -48,7 +76,8 @@ class SafetyAlertPlaceholder extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 72),
+              const Icon(Icons.warning_amber_rounded,
+                  color: Colors.white, size: 72),
               const SizedBox(height: 16),
               const Text(
                 "You've entered a flagged area",

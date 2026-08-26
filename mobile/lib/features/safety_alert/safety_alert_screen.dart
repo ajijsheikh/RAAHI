@@ -49,8 +49,6 @@ class _SafetyAlertScreenState extends State<SafetyAlertScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
     return Scaffold(
       backgroundColor: const Color(0xFFC62828), // cRisk
       body: SafeArea(
@@ -138,7 +136,7 @@ class _SafetyAlertScreenState extends State<SafetyAlertScreen> {
               ),
               const SizedBox(height: 12),
               OutlinedButton(
-                onPressed: () => context_popSafe(),
+                onPressed: () => _popSafe(),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.white,
                   side: const BorderSide(color: Colors.white),
@@ -160,7 +158,7 @@ class _SafetyAlertScreenState extends State<SafetyAlertScreen> {
     );
   }
 
-  void context_popSafe() {
+  void _popSafe() {
     HapticFeedback.mediumImpact();
     if (mounted && Navigator.of(context).canPop()) {
       Navigator.of(context).pop();

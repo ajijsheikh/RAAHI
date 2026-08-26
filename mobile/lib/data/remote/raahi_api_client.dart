@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/models/trip.dart';
 
@@ -29,10 +30,18 @@ class RaahiApiClient {
   }
 
   Future<Options> _authed({ResponseType? responseType}) async {
-    return Options(
-      responseType: responseType,
-      headers: {'X-User-Id': await userId},
-    );
+    final headers = <String, String>{'X-User-Id': await userId};
+
+    // Attach Supabase JWT when a session exists (ignored by backend in
+    // AUTH_MODE=header; required once AUTH_MODE=supabase_jwt flips on).
+    try {
+      final token = Supabase.instance.client.auth.currentSession?.accessToken;
+      if (token != null) headers['Authorization'] = 'Bearer $token';
+    } catch (_) {
+      // Supabase not initialized (demo mode) — header-only auth.
+    }
+
+    return Options(responseType: responseType, headers: headers);
   }
 
   // POST /trips — natural-language trip request

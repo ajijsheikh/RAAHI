@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:go_router/go_router.dart';
+
+import '../auth/auth_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -44,11 +47,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = ref.watch(authProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          if (auth.email != null)
+            ListTile(
+              leading: const Icon(Icons.account_circle),
+              title: Text(auth.email!),
+              subtitle: const Text('Signed in'),
+              trailing: TextButton(
+                onPressed: () async {
+                  await ref.read(authProvider.notifier).signOut();
+                  if (context.mounted) context.go('/login');
+                },
+                child: const Text('Sign out'),
+              ),
+            ),
+          const SizedBox(height: 8),
           TextField(
             controller: _contact,
             keyboardType: TextInputType.phone,

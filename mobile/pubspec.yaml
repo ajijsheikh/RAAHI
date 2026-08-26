@@ -24,6 +24,9 @@ dependencies:
   # Secure storage (user_id, emergency contact)
   flutter_secure_storage: ^9.2.2
 
+  # Supabase auth (login) — app runs in demo mode when keys absent
+  supabase_flutter: ^2.8.1
+
   # URL launcher (call contact / open map links)
   url_launcher: ^6.3.1
 
