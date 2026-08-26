@@ -1,0 +1,57 @@
+name: raahi
+description: Raahi - Agentic Safety-Aware Travel Companion
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management & DI
+  riverpod: ^2.5.0
+  riverpod_flutter_auto_dispose: ^2.0.5
+
+  # Serialization
+  freezed_annotation: ^2.4.1
+  json_serializable: ^6.8.0
+
+  # HTTP client
+  dio: ^5.4.0
+
+  # SSE client (Dio streamed response)
+  flutter_sse: ^1.0.1
+
+  # Maps
+  mapbox_maps_flutter: ^10.5.0
+
+  # Location
+  geolocator: ^10.0.0
+  permission_handler: ^10.0.0
+
+  # Secure storage
+  flutter_secure_storage: ^9.0.0
+
+  # URL launcher for amenity links
+  url_launcher: ^6.2.0
+
+  # Internationalization
+  intl: ^0.18.0
+
+  # Connectivity awareness
+  connectivity_plus: ^5.0.0
+
+  # Optional: voice input
+  speech_to_text: ^6.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  build_runner: ^2.4.0
+  freezed: ^2.4.0
+  json_serializable: ^6.8.0
+
+flutter:
+  uses-material3: true
