@@ -6,5 +6,7 @@ python-dotenv
 geojson
 httpx
 pydantic
+groq
+google-generativeai
 black
 ruff

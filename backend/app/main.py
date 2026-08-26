@@ -23,6 +23,7 @@ app.add_middleware(
 app.include_router(trips_router, prefix="/api/v1", tags=["trips"])
 app.include_router(amenities_router, prefix="/api/v1", tags=["amenities"])
 app.include_router(emergency_contacts_router, prefix="/api/v1", tags=["emergency-contacts"])
+app.include_router(irctc_router, prefix="/api/v1", tags=["irctc"])
 
 
 @app.get("/health")
