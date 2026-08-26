@@ -1,9 +1,3 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:json_annotation/json_annotation.dart';
-
-part 'intent_parser_dto.g.dart';
-
-@JsonSerializable()
 class IntentParserDto {
   final String origin;
   final String destination;
@@ -21,8 +15,21 @@ class IntentParserDto {
     this.amenitiesRequested,
   });
 
-  factory IntentParserDto.fromJson(Map<String, dynamic> json) =>
-      _$IntentParserDtoFromJson(json);
+  Map<String, dynamic> toMap() => {
+        'origin': origin,
+        'destination': destination,
+        'max_budget_inr': maxBudgetInr,
+        if (targetEta != null) 'target_eta': targetEta!.toIso8601String(),
+        'emergency_contact': emergencyContact,
+        'amenities_requested': amenitiesRequested,
+      };
 
-  Map<String, dynamic> toJson() => _$IntentParserDtoToJson(this);
+  factory IntentParserDto.fromMap(Map<String, dynamic> m) => IntentParserDto(
+        origin: m['origin'] ?? '',
+        destination: m['destination'] ?? '',
+        maxBudgetInr: m['max_budget_inr'] ?? 0,
+        targetEta: m['target_eta'] != null ? DateTime.parse(m['target_eta']) : null,
+        emergencyContact: m['emergency_contact'] as String?,
+        amenitiesRequested: m['amenities_requested'] as List<String>?,
+  );
 }

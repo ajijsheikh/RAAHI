@@ -1,98 +1,104 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:dio/dio.dart';
 
 import '../../domain/models/trip_event.dart';
+import 'raahi_api_client.dart';
 
+/// Hand-rolled SSE over Dio's streamed response (AGENTS.md §4 — no extra deps).
+///
+/// Non-negotiables from 02_PERSON_B P2.1:
+///  * skip `heartbeat` events
+///  * dedupe on event id (server replays history on reconnect)
+///  * auto-reconnect with backoff (replay makes this safe)
+///  * unknown type -> still yields; UI renders generic toast, never crashes
 class SseClient {
+  SseClient(this._dio, this._api);
+
   final Dio _dio;
-  final String _tripId;
+  final RaahiApiClient _api;
 
-  SseClient(this._dio, this._tripId);
+  final Set<String> _seenEventIds = {};
 
-  /// Open SSE connection and return a stream of [TripEvent]
-  /// The caller is responsible for opening/closing the Dio stream
-  Stream<TripEvent> eventsStream() async* {
-    final response = await _dio.fetch(
-      '/trips/$_tripId/events',
-      options: Options(responseType: ResponseType.stream),
-    );
+  /// Connects to /trips/{id}/events and yields parsed TripEvents forever,
+  /// reconnecting automatically on drop.
+  Stream<TripEvent> connect(String tripId) async* {
+    var backoff = const Duration(seconds: 2);
+    while (true) {
+      try {
+        final response = await _dio.get<ResponseBody>(
+          '${_api.baseUrl}/trips/$tripId/events',
+          options: Options(
+            responseType: ResponseType.stream,
+            headers: {
+              'Accept': 'text/event-stream',
+              'X-User-Id': await _api.userId,
+            },
+          ),
+        );
+        backoff = const Duration(seconds: 2); // reset after successful connect
 
-    final stream = response.data as Stream<List<int>>;
-    final encoder = utf8.decoder;
-    String buffer = '';
-    String? currentEventType;
-    String? currentData;
+        String buffer = '';
+        String? eventName;
+        String? eventData;
 
-    await for (final chunk in stream) {
-      final text = encoder.convert(chunk);
-      for (final line in text.split('\n')) {
-        final trimmed = line.trim();
-        if (trimmed.isEmpty) {
-          // End of event - yield if we have a complete event
-          if (currentEventType != null && currentData != null) {
-            final eventType = currentEventType!;
-            final data = currentData!;
-            currentEventType = null;
-            currentData = null;
+        await for (final chunk in response.data!.stream) {
+          buffer += utf8.decode(chunk, allowMalformed: true);
+          while (buffer.contains('\n')) {
+            final idx = buffer.indexOf('\n');
+            final line = buffer.substring(0, idx).trim();
+            buffer = buffer.substring(idx + 1);
 
-            final event = _parseSseEvent(eventType, data);
-            if (event != null) yield event;
+            if (line.isEmpty) {
+              final ev = _dispatch(eventName, eventData);
+              eventName = null;
+              eventData = null;
+              if (ev != null) yield ev;
+            } else if (line.startsWith('event:')) {
+              eventName = line.substring(6).trim();
+            } else if (line.startsWith('data:')) {
+              eventData = line.substring(5).trim();
+            }
           }
-        } else if (trimmed.startsWith('event:')) {
-          currentEventType = trimmed.substring(6).trim();
-        } else if (trimmed.startsWith('data:')) {
-          currentData = trimmed.substring(5).trim();
         }
+      } on DioException {
+        // fallthrough to retry
+      } catch (_) {
+        // keep the stream alive regardless of parse errors
       }
-    }
-
-    // Handle last event if stream ends without trailing newline
-    if (currentEventType != null && currentData != null) {
-      yield _parseSseEvent(currentEventType!, currentData!);
+      await Future<void>.delayed(backoff);
+      backoff = backoff * 2 > const Duration(seconds: 30)
+          ? const Duration(seconds: 30)
+          : backoff * 2;
     }
   }
 
-  TripEvent _parseSseEvent(String eventType, String data) {
-    final map = <String, dynamic>{};
-    for (final part in data.split(',')) {
-      final equalsIdx = part.indexOf('=');
-      if (equalsIdx > 0) {
-        final key = part.substring(0, equalsIdx).trim();
-        final value = part.substring(equalsIdx + 1).trim();
-        map[key] = value;
-      }
-    }
+  TripEvent? _dispatch(String? name, String? data) {
+    if (name == null || data == null || name == 'heartbeat') return null;
 
-    return TripEvent(
-      eventType: eventType,
-      triggerReason: map['trigger_reason'] as String?,
-      legIndex: _parseLegIndex(map['leg_index']),
-      oldLeg: _parseOldLeg(map['old_leg']),
-      newLeg: _parseNewLeg(map['new_leg']),
-      message: map['message'] as String?,
-      twilioSid: map['twilio_sid'] as String?,
-    );
-  }
-
-  int? _parseLegIndex(dynamic value) {
-    if (value == null) return null;
-    if (int.tryParse(value.toString()) != null) {
-      return int.parse(value.toString());
-    }
-    return null;
-  }
-
-  dynamic _parseLegJson(dynamic value) {
-    if (value == null) return null;
-    if (value is! String) return value;
+    Map<String, dynamic> payload = {};
     try {
-      return json.decode(value);
+      final decoded = jsonDecode(data);
+      if (decoded is Map<String, dynamic>) payload = decoded;
     } catch (_) {
-      return value;
+      payload = {'message': data}; // plain-text fallback
     }
-  }
 
-  dynamic _parseOldLeg(dynamic value) => _parseLegJson(value);
-  dynamic _parseNewLeg(dynamic value) => _parseLegJson(value);
+    final eventId = payload['event_id']?.toString();
+    if (eventId != null) {
+      if (!_seenEventIds.add(eventId)) return null; // duplicate replay
+    }
+
+    return TripEvent.fromMap({
+      'event_type': payload['type'] ?? name,
+      'message': payload['message'] ?? '',
+      'trigger_reason': payload['reason'],
+      'leg_index': payload['leg_index'],
+      'old_leg': payload['old_legs'] ?? payload['old_leg'],
+      'new_leg': payload['new_legs'] ?? payload['new_leg'],
+      'twilio_sid': payload['twilio_sid'],
+      'created_at': payload['created_at'],
+    });
+  }
 }

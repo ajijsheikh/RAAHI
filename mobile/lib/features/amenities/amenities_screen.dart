@@ -1,225 +1,162 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'package:raahi/domain/models/amenity.dart';
-import 'package:raahi/features/amenities/amenities_provider.dart';
-import 'package:raahi/features/active_trip/active_trip_provider.dart';
-import 'package:raahi/main.dart';
+import '../../domain/models/amenity.dart';
 
-class AmenitiesScreen extends ConsumerWidget {
+class Amenity {
+  final String id;
+  final String name;
+  final String kind; // 'stay' | 'food'
+  final int priceInr;
+  final double? rating;
+  final bool verified;
+  final String? phone;
+  final String reason;
+  final int walkMin;
+
+  const Amenity({
+    required this.id,
+    required this.name,
+    required this.kind,
+    required this.priceInr,
+    this.rating,
+    this.verified = false,
+    this.phone,
+    this.reason = '',
+    this.walkMin = 0,
+  });
+
+  factory Amenity.fromMap(Map<String, dynamic> m) => Amenity(
+        id: (m['id'] ?? '').toString(),
+        name: m['name'] ?? '',
+        kind: m['kind'] ?? 'food',
+        priceInr: (m['price_inr'] as num?)?.toInt() ?? 0,
+        rating: (m['rating'] as num?)?.toDouble(),
+        verified: m['verified'] ?? false,
+        phone: m['phone'] as String?,
+        reason: m['reason'] ?? '',
+        walkMin: (m['walk_min'] as num?)?.toInt() ?? 0,
+  );
+}
+
+class AmenitiesScreen extends ConsumerStatefulWidget {
   const AmenitiesScreen({super.key, required this.tripId});
 
   final String tripId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final amenities = ref.watch(amenitiesProvider);
-    final filter = ref.watch(amenitiesFilterProvider);
-    final budgetRemaining = ref.watch(budgetRemainingProvider);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Amenities'),
-        actions: [
-          _buildFilterChips(ref, filter),
-        ],
-      ),
-      body: amenities.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                _buildBudgetHeader(budgetRemaining),
-                const Expanded(child: AmenityList()),
-              ],
-            ),
-    );
-  }
-
-  Widget _buildFilterChips(WidgetRef ref, AmenityFilter currentFilter) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _FilterChip(
-          label: 'All',
-          isSelected: currentFilter == AmenityFilter.all,
-          onSelected: (selected) =>
-              ref.read(amenitiesFilterProvider.notifier).state = selected ? AmenityFilter.all : AmenityFilter.food,
-        ),
-        const SizedBox(width: 8),
-        _FilterChip(
-          label: 'Stay',
-          isSelected: currentFilter == AmenityFilter.stay,
-          onSelected: (selected) =>
-              ref.read(amenitiesFilterProvider.notifier).state = selected ? AmenityFilter.stay : AmenityFilter.all,
-        ),
-        const SizedBox(width: 8),
-        _FilterChip(
-          label: 'Food',
-          isSelected: currentFilter == AmenityFilter.food,
-          onSelected: (selected) =>
-              ref.read(amenitiesFilterProvider.notifier).state = selected ? AmenityFilter.food : AmenityFilter.all,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBudgetHeader(int budget) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            '₹$budget remaining',
-            style: GoogleFonts.openSans(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.green[700],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  ConsumerState<AmenitiesScreen> createState() => _AmenitiesScreenState();
 }
 
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final ValueChanged<bool> onSelected;
+class _AmenitiesScreenState extends ConsumerState<AmenitiesScreen> {
+  final List<Amenity> _demoAmenities = [
+    Amenity(
+      id: '1',
+      name: 'Tech Serviced Stay',
+      kind: 'stay',
+      priceInr: 750,
+      rating: 4.2,
+      verified: true,
+      phone: '+91332658741',
+      reason: 'Verified, ₹350, 8 min walk on a lit main road.',
+      walkMin: 8,
+    ),
+    Amenity(
+      id: '2',
+      name: 'Budget Inn',
+      kind: 'stay',
+      priceInr: 350,
+      rating: 3.5,
+      verified: true,
+      phone: '+91332789456',
+      reason: 'Just off Bidhannagar underpass — cheap but risky',
+      walkMin: 5,
+    ),
+    Amenity(
+      id: '3',
+      name: 'Food Court 1',
+      kind: 'food',
+      priceInr: 80,
+      rating: null,
+      verified: false,
+      phone: '+91332111111',
+      reason: 'Food court near Sector V',
+      walkMin: 3,
+    ),
+    Amenity(
+      id: '4',
+      name: 'Bhojohouse',
+      kind: 'food',
+      priceInr: 120,
+      rating: 4.0,
+      verified: true,
+      phone: '+91332222222',
+      reason: 'Popular spot at Bidhannagar Road',
+      walkMin: 2,
+    ),
+  ];
 
-  const _FilterChip({
-    required this.label,
-    required this.isSelected,
-    required this.onSelected,
-  });
+  @override
+  void initState() {
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return FilterChip(
-      label: Text(
-        label,
-        style: GoogleFonts.openSans(
-          color: isSelected ? Colors.white : Colors.green[700],
-        ),
+    return Scaffold(
+      appBar: AppBar(title: const Text('Nearby amenities')),
+      body: ListView.builder(
+        padding: const EdgeInsets.all(12),
+        itemCount: _demoAmenities.length,
+        itemBuilder: (context, i) => _AmenityCard(amenity: _demoAmenities[i]),
       ),
-      selected: isSelected,
-      selectedColor: Colors.green[700],
-      onSelected: onSelected,
-    );
-  }
-}
-
-class AmenityList extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final amenities = ref.watch(amenitiesProvider);
-    final budgetRemaining = ref.watch(budgetRemainingProvider);
-
-    if (amenities.isEmpty) {
-      return const Center(child: Text('No amenities available'));
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(8),
-      itemCount: amenities.length,
-      itemBuilder: (context, index) {
-        final amenity = amenities[index];
-        return _AmenityCard(amenity: amenity);
-      },
     );
   }
 }
 
 class _AmenityCard extends StatelessWidget {
-  final Amenity amenity;
-
   const _AmenityCard({required this.amenity});
+
+  final Amenity amenity;
 
   @override
   Widget build(BuildContext context) {
-    final cSafe = Color(0xFF1B873F);
-    final cCaution = Color(0xFFB77900);
-    final cRisk = Color(0xFFC62828);
-
-    Color safetyDotColor() {
-      if (amenity.score >= 0.7) return cSafe;
-      if (amenity.score >= 0.4) return cCaution;
-      return cRisk;
-    }
-
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        contentPadding: const EdgeInsets.all(12),
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: amenity.verified ? Colors.green[100] : Colors.grey[200],
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            amenity.kind == 'stay' ? Icons.hotel : Icons.restaurant,
-            color: amenity.verified ? Colors.green : null,
-            size: 28,
-          ),
+        leading: Icon(
+          amenity.kind == 'stay' ? Icons.hotel : Icons.restaurant,
+          size: 28,
         ),
-        title: Text(
-          amenity.name,
-          style: GoogleFonts.openSans(
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
+        title: Row(
+          children: [
+            Flexible(child: Text(amenity.name)),
+            if (amenity.verified) ...[
+              const SizedBox(width: 6),
+              const Icon(Icons.verified, size: 16, color: Color(0xFF1B873F)),
+            ],
+          ],
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '₹${amenity.priceInr}',
-              style: GoogleFonts.openSans(
-                fontSize: 14,
-                color: Colors.green[700],
+            Text('₹${amenity.priceInr} · ${amenity.walkMin} min walk'),
+            if (amenity.reason.isNotEmpty)
+              Text(
+                amenity.reason,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontStyle: FontStyle.italic,
+                    ),
               ),
-            ),
-            Text(
-              '${amenity.walkMin} min walk',
-              style: GoogleFonts.openSans(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
-            ),
           ],
         ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                color: safetyDotColor(),
-                shape: BoxDecoration.shape.circle,
-              ),
-            ),
-            const SizedBox(width: 8),
-            TextButton(
-              onPressed: () {
-                final uri = Uri.parse('tel:${amenity.phone ?? ''}');
-                if (canLaunchUrl(uri)) {
-                  launchUrl(uri);
-                }
-              },
-              child: Text(
-                'Call',
-                style: GoogleFonts.openSans(
-                  color: Colors.green[700],
-                  fontSize: 12,
-                ),
-              ),
-            ),
-          ],
+        trailing: IconButton(
+          icon: const Icon(Icons.phone),
+          tooltip: 'Call',
+          onPressed: amenity.phone == null || amenity.phone!.isEmpty
+              ? null
+              : () => launchUrl(Uri.parse('tel:${amenity.phone}')),
         ),
       ),
     );

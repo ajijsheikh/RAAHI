@@ -1,92 +1,77 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:rahi/domain/models/emergency_contact.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-import '../../data/remote/raahi_api_client.dart';
-import '../../data/local/trip_cache.dart';
-
-class SettingsScreen extends ConsumerWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final emergencyContact =
-        ref.watch(tripCacheProvider).maybeWhen(
-              data: (trip) => trip.parsedIntent.emergencyContact,
-              orElse: () => '',
-            );
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
 
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  final _contact = TextEditingController();
+  final _storage = const FlutterSecureStorage();
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _restore();
+  }
+
+  Future<void> _restore() async {
+    final saved = await _storage.read(key: 'emergency_contact');
+    if (saved != null && mounted) {
+      setState(() => _contact.text = saved);
+    }
+    if (mounted) setState(() => _loaded = true);
+  }
+
+  Future<void> _save() async {
+    await _storage.write(key: 'emergency_contact', value: _contact.text.trim());
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Emergency contact saved')),
+    );
+  }
+
+  @override
+  void dispose() {
+    _contact.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              'Emergency Contact',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
+      appBar: AppBar(title: const Text('Settings')),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          TextField(
+            controller: _contact,
+            keyboardType: TextInputType.phone,
+            decoration: InputDecoration(
+              labelText: 'Emergency contact phone',
+              hintText: '+919800000000',
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            const SizedBox(height: 16),
-            TextField(
-              keyboardType: TextInputType.phone,
-              decoration: InputDecoration(
-                labelText: 'Emergency contact phone (E.164 format)',
-                hintText: '+919800000000',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                filled: true,
-                fillColor: Theme.of(context).colorScheme.surface,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
-                ),
-              ),
-              initialValue: emergencyContact,
-              onChanged: (value) {
-                // Update in local state - in full app would update provider state
-              },
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () async {
-                final refCtx = ref.read(tripCacheProvider);
-                // In full app, would call API to register contact
-                // final result = await ref.read(raahiApiClientProvider).registerEmergencyContact(
-                //   phoneNumber: '+919800000000',
-                //   relation: 'parent',
-                // );
-                // For now, just save locally
-                // ref.read(tripCacheProvider.notifier).saveTrip(trip);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Emergency contact saved'),
-                    ),
-                  );
-                }
-              },
-              child: const Text('Save Emergency Contact'),
-            ),
-            const Spacer(),
-            const Text(
-              'This contact will be notified automatically if you enter a flagged unsafe zone.',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
-                fontStyle: FontStyle.italic,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: _loaded ? _save : null,
+            child: const Text('Save'),
+          ),
+          const SizedBox(height: 32),
+          Text(
+            'This contact is notified automatically via SMS '
+            'if you enter a flagged unsafe zone.',
+            style: Theme.of(context).textTheme.bodySmall,
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
