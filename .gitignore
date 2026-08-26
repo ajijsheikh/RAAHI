@@ -13,3 +13,9 @@ __pycache__/
 
 # OS
 .DS_Store
+
+# Flutter/Dart build artifacts
+mobile/.dart_tool/
+mobile/build/
+mobile/.flutter-plugins*
+mobile/.packages
