@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/active_trip/active_trip_screen.dart';
+import '../features/amenities/amenities_screen.dart';
 import '../features/auth/auth_provider.dart';
 import '../features/auth/login_screen.dart';
 import '../features/settings/settings_screen.dart';
@@ -52,6 +53,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'safetyAlert',
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: SafetyAlertPlaceholder()),
+      ),
+      GoRoute(
+        path: '/trip/:id/amenities',
+        name: 'amenities',
+        pageBuilder: (context, state) => NoTransitionPage(
+          child: AmenitiesScreen(tripId: state.pathParameters['id'] ?? ''),
+        ),
       ),
       GoRoute(
         path: '/settings',

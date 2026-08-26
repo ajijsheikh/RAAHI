@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../domain/models/leg.dart';
+import 'book_ride_sheet.dart';
 import 'provider/active_trip_provider.dart';
 
 class ActiveTripScreen extends ConsumerStatefulWidget {
@@ -68,6 +70,13 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
         title: const Text('Your trip'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.restaurant_outlined),
+            tooltip: 'Nearby amenities',
+            onPressed: trip == null
+                ? null
+                : () => context.go('/trip/${trip.tripId}/amenities'),
+          ),
+          IconButton(
             icon: const Icon(Icons.warning_amber_rounded),
             tooltip: 'Safety alert (demo)',
             onPressed: () => context.go('/trip/demo/alert'),
@@ -110,20 +119,58 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Leg timeline
-                  for (final leg in trip.itinerary.legs)
-                    Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: ListTile(
-                        leading: Icon(_iconFor(leg.mode)),
-                        title: Text('${leg.from} → ${leg.to}'),
-                        subtitle: Text(
-                          '${leg.travelTimeMinutes} min · dep '
-                          '${DateFormat.Hm().format(leg.scheduledDeparture)}',
-                        ),
-                        trailing: Text('₹${leg.costInr}'),
+                  // Map placeholder — replaced by Mapbox polyline render the
+                  // moment MAPBOX tokens are configured (P2.2).
+                  Container(
+                    height: 140,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF0F6E5C), Color(0xFF134E3F)],
                       ),
                     ),
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.route, color: Colors.white70, size: 18),
+                            const SizedBox(width: 6),
+                            Text(
+                              'LIVE ROUTE',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(color: Colors.white70),
+                            ),
+                          ],
+                        ),
+                        const Spacer(),
+                        Text(
+                          '${trip.itinerary.legs.first.from} → '
+                          '${trip.itinerary.legs.last.to}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${trip.itinerary.legs.length} legs · '
+                          '${trip.itinerary.legs.where((l) => l.mode == 'bus' || l.mode == 'train' || l.mode == 'metro').length} transfers',
+                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Leg timeline with current/completed states (P2.3).
+                  ..._buildLegCards(context, trip.itinerary.legs, trip.tripId),
 
                   const SizedBox(height: 8),
 
@@ -189,6 +236,83 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
               ),
       },
     );
+  }
+
+  List<Widget> _buildLegCards(
+    BuildContext context,
+    List<Leg> legs,
+    String tripId,
+  ) {
+    final state = ref.watch(activeTripProvider);
+    var current = 0;
+    for (final e in state.events) {
+      final idx = e.legIndex;
+      if ((e.eventType == 'leg_started' || e.eventType == 'reroute') &&
+          idx != null &&
+          idx > current) {
+        current = idx;
+      }
+    }
+
+    return [
+      for (final leg in legs)
+        Builder(
+          builder: (context) {
+            final isCurrent = leg.legIndex == current;
+            final isDone = leg.legIndex < current;
+            final opacity = isDone ? 0.55 : 1.0;
+
+            return Opacity(
+              opacity: opacity,
+              child: Card(
+                margin: const EdgeInsets.only(bottom: 8),
+                shape: isCurrent
+                    ? RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 2,
+                        ),
+                      )
+                    : null,
+                child: ListTile(
+                  leading: Stack(
+                    alignment: Alignment.bottomRight,
+                    children: [
+                      Icon(_iconFor(leg.mode)),
+                      if (isDone)
+                        const Icon(Icons.check_circle,
+                            size: 14, color: Color(0xFF1B873F)),
+                      if (isCurrent)
+                        Container(
+                          width: 8,
+                          height: 8,
+                          margin: const EdgeInsets.only(left: 14),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                    ],
+                  ),
+                  title: Text('${leg.from} → ${leg.to}'),
+                  subtitle: Text(
+                    '${leg.travelTimeMinutes} min · dep '
+                    '${DateFormat.Hm().format(leg.scheduledDeparture)}'
+                    '${isCurrent ? " · in progress" : ""}',
+                  ),
+                  trailing: (leg.mode == 'auto' || leg.mode == 'rideshare')
+                      ? TextButton(
+                          onPressed: () => showBookRideSheet(context),
+                          child: const Text('Book ₹'),
+                        )
+                      : Text('₹${leg.costInr}'),
+                ),
+              ),
+            );
+          },
+        ),
+    ];
   }
 
   IconData _iconFor(String mode) => switch (mode) {
