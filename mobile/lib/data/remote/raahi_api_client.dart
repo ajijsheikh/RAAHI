@@ -44,8 +44,10 @@ class RaahiApiClient {
     return Options(responseType: responseType, headers: headers);
   }
 
-  // POST /trips — natural-language trip request
-  Future<Trip> createTrip({
+  // POST /trips — natural-language trip request.
+  // Returns the raw map: callers must check 'clarification_needed' (§3.1)
+  // before treating it as a Trip.
+  Future<Map<String, dynamic>> createTrip({
     required String query,
     String? emergencyContactPhone,
     String routePreference = 'balanced',
@@ -60,7 +62,7 @@ class RaahiApiClient {
       }),
       options: await _authed(),
     );
-    return Trip.fromMap(res.data!);
+    return res.data ?? {};
   }
 
   // GET /trips/{id}

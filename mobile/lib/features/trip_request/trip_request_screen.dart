@@ -14,6 +14,7 @@ class TripRequestScreen extends ConsumerStatefulWidget {
 class _TripRequestScreenState extends ConsumerState<TripRequestScreen> {
   late final TextEditingController _query;
   final _contact = TextEditingController();
+  final _clarifyAnswer = TextEditingController();
 
   static const _defaultQuery =
       'Howrah se Salt Lake Sector V, ₹200, 10 baje tak';
@@ -31,6 +32,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> {
   void dispose() {
     _query.dispose();
     _contact.dispose();
+    _clarifyAnswer.dispose();
     super.dispose();
   }
 
@@ -125,6 +127,59 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> {
                     )
                   : const Text('Plan my trip'),
             ),
+
+            // §3.1 clarification — agent asks a follow-up instead of failing.
+            if (state.needsClarification) ...[
+              const SizedBox(height: 16),
+              Card(
+                color: Colors.amber.shade50,
+                elevation: 0,
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        const Icon(Icons.auto_awesome, size: 16, color: Color(0xFF0F6E5C)),
+                        const SizedBox(width: 6),
+                        Text('Raahi needs one more detail',
+                            style: Theme.of(context).textTheme.labelMedium),
+                      ]),
+                      const SizedBox(height: 8),
+                      Text(state.clarificationQuestion!),
+                      const SizedBox(height: 10),
+                      Row(children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _clarifyAnswer,
+                            decoration: InputDecoration(
+                              isDense: true,
+                              hintText: 'your answer',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        FilledButton(
+                          onPressed: () {
+                            final a = _clarifyAnswer.text.trim();
+                            if (a.isEmpty) return;
+                            _clarifyAnswer.clear();
+                            ref.read(tripRequestProvider.notifier).answerClarification(
+                                  a,
+                                  phone: _contact.text.trim(),
+                                );
+                          },
+                          child: const Text('Send'),
+                        ),
+                      ]),
+                    ],
+                  ),
+                ),
+              ),
+            ],
 
             if (state.status.name == 'error' && state.errorMessage != null) ...[
               const SizedBox(height: 16),

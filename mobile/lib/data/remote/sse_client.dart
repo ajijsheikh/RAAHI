@@ -93,7 +93,7 @@ class SseClient {
     return TripEvent.fromMap({
       'event_type': payload['type'] ?? name,
       'message': payload['message'] ?? '',
-      'trigger_reason': payload['reason'],
+      'trigger_reason': payload['reason'] ?? payload['zone_name'],
       'leg_index': payload['leg_index'],
       'old_leg': payload['old_legs'] ?? payload['old_leg'],
       'new_leg': payload['new_legs'] ?? payload['new_leg'],

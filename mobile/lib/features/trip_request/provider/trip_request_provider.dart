@@ -11,6 +11,7 @@ class TripRequestUiState {
     required this.status,
     this.trip,
     this.errorMessage,
+    this.clarificationQuestion,
   });
 
   const TripRequestUiState.idle()
@@ -25,11 +26,21 @@ class TripRequestUiState {
   const TripRequestUiState.error(String message)
       : this._(status: TripRequestStatus.error, errorMessage: message);
 
+  const TripRequestUiState.clarify(String question)
+      : this._(
+          status: TripRequestStatus.idle,
+          clarificationQuestion: question,
+        );
+
   final TripRequestStatus status;
   final Trip? trip;
   final String? errorMessage;
 
+  /// Non-null => backend asked a follow-up (§3.1). Render inline, not as error.
+  final String? clarificationQuestion;
+
   bool get isLoading => status == TripRequestStatus.loading;
+  bool get needsClarification => clarificationQuestion != null;
 }
 
 class TripRequestNotifier extends StateNotifier<TripRequestUiState> {
@@ -40,6 +51,7 @@ class TripRequestNotifier extends StateNotifier<TripRequestUiState> {
 
   final RaahiApiClient _apiClient;
   final TripCache _cache;
+  String _lastQuery = '';
 
   Future<Trip?> submit({
     required String query,
@@ -47,12 +59,30 @@ class TripRequestNotifier extends StateNotifier<TripRequestUiState> {
     String routePreference = 'balanced',
   }) async {
     state = const TripRequestUiState.loading();
+    _lastQuery = query;
     try {
-      final trip = await _apiClient.createTrip(
+      final map = await _apiClient.createTrip(
         query: query,
         emergencyContactPhone: emergencyContactPhone,
         routePreference: routePreference,
       );
+
+      // §3.1: clarification is a 200 with a question, not an error.
+      final clarify = map['clarification_needed'] as Map<String, dynamic>?;
+      if (clarify != null) {
+        final q = (clarify['question'] ?? 'Could you add more detail?')
+            .toString();
+        state = TripRequestUiState.clarify(q);
+        return null;
+      }
+
+      if (map['trip_id'] == null) {
+        state = const TripRequestUiState.error(
+            'Unexpected response from server.');
+        return null;
+      }
+
+      final trip = Trip.fromMap(map);
       _cache.save(trip);
       state = TripRequestUiState.success(trip);
       return trip;
@@ -60,6 +90,12 @@ class TripRequestNotifier extends StateNotifier<TripRequestUiState> {
       state = TripRequestUiState.error(_messageFor(e));
       return null;
     }
+  }
+
+  /// Resubmit the original query with the user's answer appended.
+  Future<Trip?> answerClarification(String answer, {String phone = ''}) {
+    final merged = '$_lastQuery $answer'.trim();
+    return submit(query: merged, emergencyContactPhone: phone);
   }
 
   void reset() => state = const TripRequestUiState.idle();

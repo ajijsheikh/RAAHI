@@ -51,8 +51,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/trip/:id/alert',
         name: 'safetyAlert',
-        pageBuilder: (context, state) =>
-            const NoTransitionPage(child: SafetyAlertPlaceholder()),
+        pageBuilder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return NoTransitionPage(
+            child: SafetyAlertPlaceholder(
+              zoneName: extra?['zone_name'] as String? ?? 'flagged area',
+              message: extra?['message'] as String?,
+              contactNotified:
+                  extra?['contact_notified'] as bool?,
+            ),
+          );
+        },
       ),
       GoRoute(
         path: '/trip/:id/amenities',
@@ -71,9 +80,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   );
 });
 
-/// Placeholder until B's full safety alert screen lands.
+/// Safety alert takeover. Data comes from the real safety_alert SSE event
+/// via go_router `extra`; demo AppBar entry falls back to defaults.
 class SafetyAlertPlaceholder extends StatelessWidget {
-  const SafetyAlertPlaceholder({super.key});
+  const SafetyAlertPlaceholder({
+    super.key,
+    this.zoneName = 'flagged area',
+    this.message,
+    this.contactNotified,
+  });
+
+  final String zoneName;
+  final String? message;
+  final bool? contactNotified; // null => status unknown, show neutral state
 
   @override
   Widget build(BuildContext context) {
@@ -93,6 +112,27 @@ class SafetyAlertPlaceholder extends StatelessWidget {
                   color: Colors.white,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Text(
+                  message ?? zoneName,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                switch (contactNotified) {
+                  true => 'Emergency contact notified',
+                  false => 'Could not reach contact — retrying',
+                  null => 'Contact notification in progress…',
+                },
+                style: TextStyle(
+                  color: contactNotified == false ? Colors.amber : Colors.greenAccent,
+                  fontSize: 13,
                 ),
               ),
               const SizedBox(height: 24),

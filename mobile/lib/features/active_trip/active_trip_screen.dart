@@ -55,7 +55,12 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
             );
           } else if (e.eventType == 'safety_alert') {
             final id = next.trip?.tripId ?? 'demo';
-            context.go('/trip/$id/alert');
+            context.go('/trip/$id/alert', extra: {
+              'zone_name': (e.triggerReason?.isNotEmpty ?? false)
+                  ? e.triggerReason!
+                  : 'flagged area',
+              'message': e.message,
+            });
           }
         }
       }
