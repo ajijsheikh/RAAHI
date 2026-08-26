@@ -8,5 +8,6 @@ httpx
 pydantic
 groq
 google-generativeai
+twilio
 black
 ruff

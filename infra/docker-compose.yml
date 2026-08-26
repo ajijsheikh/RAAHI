@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: raahi
+      POSTGRES_PASSWORD: raahi
+      POSTGRES_DB: raahi
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./sql:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U raahi"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  pgdata:
