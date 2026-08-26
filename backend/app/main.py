@@ -5,6 +5,7 @@ from app.config import settings
 from app.routers.trips import router as trips_router
 from app.routers.amenities import router as amenities_router
 from app.routers.emergency_contacts import router as emergency_contacts_router
+from app.routers.irctc import router as irctc_router
 
 app = FastAPI(
     title="Raahi Backend",
