@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Query
 
-from app.services.irctc_client import check_pnr, verify_travel_router
+from app.services.irctc_client import check_pnr, verify_travel_claim
 
-router = APIRouter(prefix="/api/v1/irctc", tags=["irctc"])
+router = APIRouter(prefix="/irctc", tags=["irctc"])
 
 
 @router.get("/pnr/{pnr}")

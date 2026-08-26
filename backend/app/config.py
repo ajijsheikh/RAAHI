@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     MONITOR_POLL_INTERVAL_S: int = 5
     GEOFENCE_BUFFER_M: int = 50
     SAFETY_SCORE_FLOOR: float = 0.35
+    IRCTC_ENABLED: bool = False
+    IRCTC_API_KEY: str = ""
+    IRCTC_API_HOST: str = ""
 
     class Config:
         env_file = ".env"

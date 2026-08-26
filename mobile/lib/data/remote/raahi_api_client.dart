@@ -178,6 +178,31 @@ class RaahiApiClient {
     return EmergencyContactResponse.fromMap(response);
   }
 
+  // API Endpoint 8: GET /irctc/pnr/{pnr} - Verify PNR status
+  Future<Map<String, dynamic>> verifyPnr(String pnr) async {
+    final response = await _request<Map<String, dynamic>>(
+      'GET',
+      '/irctc/pnr/$pnr',
+    );
+    return response;
+  }
+
+  // API Endpoint 9: GET /irctc/verify-claim - Cross-check claimed destination
+  Future<Map<String, dynamic>> verifyTravelClaim({
+    required String pnr,
+    required String claimedDestination,
+  }) async {
+    final response = await _request<Map<String, dynamic>>(
+      'GET',
+      '/irctc/verify-claim',
+      queryParameters: {
+        'pnr': pnr,
+        'claimed_destination': claimedDestination,
+      },
+    );
+    return response;
+  }
+
   // Demo-only: simulate delay trigger
   Future<void> simulateDelay({
     required String tripId,
