@@ -6,39 +6,38 @@ version: 0.1.0
 environment:
   sdk: ">=3.0.0 <4.0.0"
 
+uses-material3: true
+
 dependencies:
   flutter:
     sdk: flutter
 
   # State management & DI
   riverpod: ^2.5.0
-  riverpod_flutter_auto_dispose: ^2.0.5
 
   # Serialization
-  freezed_annotation: ^2.4.1
-  json_serializable: ^6.8.0
+  freezed_annotation: ^2.4.4
+  json_annotation: ^4.9.0
+  hive_flutter: ^1.1.0
 
   # HTTP client
-  dio: ^5.4.0
-
-  # SSE client (Dio streamed response)
-  flutter_sse: ^1.0.1
+  dio: ^5.7.0
 
   # Maps
-  mapbox_maps_flutter: ^10.5.0
+  mapbox_maps_flutter: ^2.6.0
 
   # Location
   geolocator: ^10.0.0
   permission_handler: ^10.0.0
 
   # Secure storage
-  flutter_secure_storage: ^9.0.0
+  flutter_secure_storage: ^9.2.2
 
   # URL launcher for amenity links
-  url_launcher: ^6.2.0
+  url_launcher: ^6.3.1
 
   # Internationalization
-  intl: ^0.18.0
+  intl: ^0.19.0
 
   # Connectivity awareness
   connectivity_plus: ^5.0.0
@@ -47,7 +46,6 @@ dependencies:
   speech_to_text: ^6.2.0
 
 flutter:
-  uses-material3: true
 
 dev_dependencies:
   flutter_test:
