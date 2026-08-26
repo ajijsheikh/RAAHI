@@ -19,3 +19,11 @@ mobile/.dart_tool/
 mobile/build/
 mobile/.flutter-plugins*
 mobile/.packages
+# Backend run logs
+backend/uvicorn.*.log
+# Flutter desktop/web platforms (android+test are committed)
+mobile/ios/
+mobile/linux/
+mobile/macos/
+mobile/web/
+mobile/windows/
