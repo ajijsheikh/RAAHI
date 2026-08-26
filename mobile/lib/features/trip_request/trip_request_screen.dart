@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'provider/location_provider.dart';
 import 'provider/trip_request_provider.dart';
 
 class TripRequestScreen extends ConsumerStatefulWidget {
@@ -66,6 +67,8 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
+            _LocationChip(),
+            const SizedBox(height: 12),
             TextField(
               controller: _query,
               maxLines: 3,
@@ -204,4 +207,59 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> {
         'safest' => 'Safest',
         _ => p,
       };
+}
+
+/// Live GPS position chip — shows where the traveler is right now.
+/// Fails soft: any permission/GPS issue just renders a quiet hint line.
+class _LocationChip extends ConsumerStatefulWidget {
+  @override
+  ConsumerState<_LocationChip> createState() => _LocationChipState();
+}
+
+class _LocationChipState extends ConsumerState<_LocationChip> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(locationProvider.notifier).locate();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = ref.watch(locationProvider);
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.my_location, size: 16, color: theme.colorScheme.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              switch ((loc.isLoading, loc.position, loc.error)) {
+                (true, _, _) => 'Locating you…',
+                (_, final pos, _) when pos != null =>
+                  'Near ${pos.latitude.toStringAsFixed(4)}, '
+                      '${pos.longitude.toStringAsFixed(4)}',
+                (_, _, final err?) => err,
+                _ => '',
+              },
+              style: theme.textTheme.bodySmall,
+            ),
+          ),
+          if (loc.position == null && !loc.isLoading)
+            TextButton(
+              onPressed: () => ref.read(locationProvider.notifier).locate(),
+              child: const Text('Retry'),
+            ),
+        ],
+      ),
+    );
+  }
 }

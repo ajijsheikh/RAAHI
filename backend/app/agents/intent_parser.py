@@ -1,4 +1,5 @@
 import json
+import os
 import re
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Dict, Any
@@ -89,24 +90,26 @@ async def parse_intent(raw_query: str, contact: dict | None = None) -> dict:
     destination_text: str = "Salt Lake Sector V"
     missing_fields: List[str] = []
 
-    # Extract budget - handle both "₹200" and "200 rupee" formats
-    budget_match = re.search(r"[₹$]\s*(\d+)|(\d+)\s*rupe(e|ies?)?", query, re.IGNORECASE)
+    # Extract budget - "₹200", "200 rupee", or "200 ke andar" formats.
+    # Lookahead form avoids matching clock times ("10 baje").
+    budget_match = re.search(
+        r"[₹]\s*(\d+)|(\d+)\s*rupe(?:e|ies?)?|(\d+)\s*(?=ke\s*andar)",
+        query,
+        re.IGNORECASE,
+    )
     if budget_match:
-        if budget_match.group(1):
-            max_budget = int(budget_match.group(1))
-        elif budget_match.group(2):
-            max_budget = int(budget_match.group(2))
+        for g in budget_match.groups():
+            if g and g.isdigit():
+                max_budget = int(g)
+                break
 
     # Resolve origin and destination using "se" as separator
     # "se" means "from" in Hindi/Bengali
     parts = re.split(r"\bse\s+", query, flags=re.IGNORECASE)
     if len(parts) >= 2:
-        origin_raw = parts[0].strip()
-        dest_raw = parts[1]
-
-        # Remove trailing phrases from destination: "ke andar", "rupee keandar",
-        # "rupees mein", "baje tak", "₹200 ke andar", etc.
-        # (Handled by UI display layer; parser extracts raw text after "se")
+        # Trim everything from the first comma: ", ₹200 ke andar, 10 baje tak"
+        origin_raw = re.split(r",", parts[0].strip())[0]
+        dest_raw = re.split(r",", parts[1].strip())[0]
 
         origin_text = _resolve_landmark(origin_raw)
         destination_text = _resolve_landmark(dest_raw)
@@ -153,7 +156,50 @@ async def parse_intent(raw_query: str, contact: dict | None = None) -> dict:
         "missing_fields": missing_fields,
     }
 
+    # ─── LLM enhancement layer (Groq primary; silent fallback to regex) ───
+    # Regex handles known landmarks deterministically. Groq fills gaps for
+    # vague/messy Hinglish the patterns miss. Any failure → regex result.
+    if os.getenv("GROQ_API_KEY"):
+        llm = await _llm_extract(query)
+        if llm:
+            if intent["max_budget_inr"] is None and llm.get("max_budget_inr"):
+                intent["max_budget_inr"] = int(llm["max_budget_inr"])
+            dest_llm = llm.get("destination")
+            if dest_llm:
+                resolved = _resolve_landmark(str(dest_llm))
+                if resolved != intent["destination_text"]:
+                    intent["destination_text"] = resolved
+                    intent["confidence"] = 0.95
+                    if "destination_text" in intent["missing_fields"]:
+                        intent["missing_fields"].remove("destination_text")
+
     return intent
+
+
+_LLM_SCHEMA = {
+    "origin": "string or null",
+    "destination": "string or null",
+    "max_budget_inr": "integer or null",
+}
+
+
+async def _llm_extract(query: str) -> Optional[Dict[str, Any]]:
+    """Ask Groq for origin/destination/budget. None on any failure."""
+    try:
+        from app.services.llm_client import complete_json
+
+        return await complete_json(
+            system=(
+                "Extract travel intent from Hinglish/Bengali-English transit "
+                "queries in Kolkata. Return ONLY JSON with keys: "
+                'origin, destination, max_budget_inr (int or null). '
+                'Use null for anything not stated. Never guess.'
+            ),
+            user=query,
+            schema=_LLM_SCHEMA,
+        )
+    except Exception:  # noqa: BLE001 — fallback must be invisible
+        return None
 
 
 # ─── Test harness ──────────────────────────────────────────────────────────

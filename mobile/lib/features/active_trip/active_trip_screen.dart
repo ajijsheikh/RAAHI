@@ -82,6 +82,13 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
                 : () => context.go('/trip/${trip.tripId}/amenities'),
           ),
           IconButton(
+            icon: const Icon(Icons.check_circle_outline),
+            tooltip: 'End trip & summary',
+            onPressed: trip == null
+                ? null
+                : () => context.go('/trip/${trip.tripId}/summary'),
+          ),
+          IconButton(
             icon: const Icon(Icons.warning_amber_rounded),
             tooltip: 'Safety alert (demo)',
             onPressed: () => context.go('/trip/demo/alert'),
